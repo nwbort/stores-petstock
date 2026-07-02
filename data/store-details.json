@@ -1,0 +1,85 @@
+[
+  {
+    "id": "1082",
+    "slug": "ballarat-pet-&-farm-vet-1082",
+    "name": "Ballarat Pet & Farm Vet",
+    "url": "https://petstock.com.au/store/ballarat-pet-&-farm-vet-1082",
+    "isActive": true,
+    "address": {
+      "line1": "28 Wiltshire Ln",
+      "line2": "",
+      "suburb": "Delacombe",
+      "state": "VIC",
+      "postcode": "3356",
+      "country": "Australia"
+    },
+    "latitude": "-37.57698",
+    "longitude": "143.80873",
+    "phone": "+613 5336 0006",
+    "email": "clinic@ballaratpetfarmvet.com.au",
+    "services": {
+      "hasDiyWash": false,
+      "hasGrooming": false,
+      "hasAdoption": false,
+      "hasPetIdTags": false,
+      "hasPetLaundry": false,
+      "hasPuppySchool": false,
+      "hasCatBoarding": false,
+      "hasWaterTesting": false,
+      "isStore": false,
+      "isVetClinic": true
+    },
+    "openingHours": [
+      {
+        "day": "Today",
+        "openHours": {
+          "open": "0830",
+          "close": "1800"
+        }
+      },
+      {
+        "day": "Tomorrow",
+        "openHours": {
+          "open": "0830",
+          "close": "1800"
+        }
+      },
+      {
+        "day": "Saturday",
+        "openHours": {
+          "open": "0900",
+          "close": "1200"
+        }
+      },
+      {
+        "day": "Sunday",
+        "openHours": {
+          "open": "",
+          "close": ""
+        }
+      },
+      {
+        "day": "Monday",
+        "openHours": {
+          "open": "0830",
+          "close": "1800"
+        }
+      },
+      {
+        "day": "Tuesday",
+        "openHours": {
+          "open": "0830",
+          "close": "1800"
+        }
+      },
+      {
+        "day": "Wednesday",
+        "openHours": {
+          "open": "0830",
+          "close": "1800"
+        }
+      }
+    ],
+    "scrapedAt": "2026-07-02T04:30:55+00:00"
+  }
+]
