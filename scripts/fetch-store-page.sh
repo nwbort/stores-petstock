@@ -26,10 +26,4 @@ curl -s -L "$URL" \
     exit 1
   }
 
-# Record the fetch time alongside the HTML. build-store-details.py reads this
-# for "scrapedAt" since, at parse time, the HTML file itself isn't committed
-# yet this run, so git history can't tell us when it was actually fetched.
-META_PATH="${OUTPUT_PATH%.html}.meta.json"
-printf '{"fetchedAt": "%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$META_PATH"
-
 echo "Saved $URL -> $OUTPUT_PATH"

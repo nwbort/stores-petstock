@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-"""Parse each fetched store HTML page into data/store-details.json.
+"""Parse freshly-fetched store HTML pages into data/store-details.json.
 
 Store pages are Next.js pages that embed their data as a JSON blob in
 <script id="__NEXT_DATA__">, under props.pageProps.locationData.location.
+
+Fetched HTML is a transient working file (see .gitignore) - only the
+structured data extracted from it is committed. So each run merges
+newly-parsed stores into the existing output, rather than requiring every
+store's HTML to be present locally.
 """
 
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -18,17 +24,7 @@ NEXT_DATA_RE = re.compile(
 )
 
 
-def fetched_at(html_path: Path) -> str | None:
-    meta_path = html_path.with_suffix("").with_suffix(".meta.json")
-    if not meta_path.exists():
-        return None
-    try:
-        return json.loads(meta_path.read_text()).get("fetchedAt")
-    except json.JSONDecodeError:
-        return None
-
-
-def parse_store_html(path: Path) -> dict | None:
+def parse_store_html(path: Path, scraped_at: str) -> dict | None:
     html = path.read_text(encoding="utf-8")
     match = NEXT_DATA_RE.search(html)
     if not match:
@@ -62,25 +58,32 @@ def parse_store_html(path: Path) -> dict | None:
         "email": location.get("email"),
         "services": location.get("locationServices"),
         "openingHours": location.get("openingHours"),
-        "scrapedAt": fetched_at(path),
+        "scrapedAt": scraped_at,
     }
 
 
 def main() -> None:
-    stores = []
-    for html_path in sorted(HTML_DIR.glob("*.html")):
-        details = parse_store_html(html_path)
-        if details:
-            stores.append(details)
+    stores_by_slug = {}
+    if OUTPUT.exists():
+        for store in json.loads(OUTPUT.read_text()):
+            stores_by_slug[store["slug"]] = store
 
-    stores.sort(key=lambda s: s["slug"] or "")
+    scraped_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    updated = 0
+    for html_path in sorted(HTML_DIR.glob("*.html")):
+        details = parse_store_html(html_path, scraped_at)
+        if details:
+            stores_by_slug[details["slug"]] = details
+            updated += 1
+
+    stores = sorted(stores_by_slug.values(), key=lambda s: s["slug"] or "")
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     with OUTPUT.open("w") as f:
         json.dump(stores, f, indent=2)
         f.write("\n")
 
-    print(f"Wrote {len(stores)} store detail record(s) to {OUTPUT.relative_to(ROOT)}")
+    print(f"Updated {updated} store(s), {len(stores)} total in {OUTPUT.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

@@ -2,9 +2,12 @@
 #
 # scrape-store-details.sh - Fetch raw HTML for each store's detail page.
 #
+# The fetched HTML is a transient working file (see .gitignore) - only the
+# structured data extracted from it is committed, to data/store-details.json.
+#
 # A store is (re)fetched when either is true:
-#   - its HTML file doesn't exist yet (new store), or
-#   - its HTML file was last committed more than STALE_DAYS ago (weekly refresh)
+#   - it has no entry in data/store-details.json yet (new store), or
+#   - its recorded scrapedAt is more than STALE_DAYS ago (weekly refresh)
 #
 # MAX_FETCHES caps how many pages are fetched in a single run, so we don't
 # hammer the site (and so early runs can be limited to a small sample while
@@ -17,32 +20,33 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STORES_JSON="$ROOT/data/stores.json"
+DETAILS_JSON="$ROOT/data/store-details.json"
 HTML_DIR="$ROOT/data/stores"
 
 STALE_DAYS="${STALE_DAYS:-7}"
 MAX_FETCHES="${MAX_FETCHES:-10}"
 SLEEP_SECONDS="${SLEEP_SECONDS:-1}"
 
-STALE_CUTOFF=$(( $(date -u +%s) - STALE_DAYS * 86400 ))
+STALE_CUTOFF_ISO=$(date -u -d "-${STALE_DAYS} days" +%Y-%m-%dT%H:%M:%SZ)
 
 fetched=0
 
 needs_fetch() {
-  local html_path="$1"
+  local slug="$1"
 
-  if [ ! -f "$html_path" ]; then
-    return 0 # new store
-  fi
-
-  # Last commit time for this file (0 if never committed, e.g. just created locally).
-  local last_commit
-  last_commit=$(git -C "$ROOT" log -1 --format=%ct -- "$html_path" 2>/dev/null || true)
-
-  if [ -z "$last_commit" ]; then
+  if [ ! -f "$DETAILS_JSON" ]; then
     return 0
   fi
 
-  if [ "$last_commit" -lt "$STALE_CUTOFF" ]; then
+  local scraped_at
+  scraped_at=$(jq -r --arg slug "$slug" \
+    'map(select(.slug == $slug)) | .[0].scrapedAt // empty' "$DETAILS_JSON")
+
+  if [ -z "$scraped_at" ]; then
+    return 0 # new store, or never successfully scraped
+  fi
+
+  if [[ "$scraped_at" < "$STALE_CUTOFF_ISO" ]]; then
     return 0 # stale, needs a refresh
   fi
 
@@ -62,7 +66,7 @@ for i in $(seq 0 $((count - 1))); do
   url=$(jq -r ".[$i].url" "$STORES_JSON")
   html_path="$HTML_DIR/$slug.html"
 
-  if needs_fetch "$html_path"; then
+  if needs_fetch "$slug"; then
     fetched=$((fetched + 1))
     if ! "$ROOT/scripts/fetch-store-page.sh" "$url" "$html_path"; then
       echo "Skipping $slug for this run after fetch failure" >&2
