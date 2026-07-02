@@ -7,7 +7,6 @@ Store pages are Next.js pages that embed their data as a JSON blob in
 
 import json
 import re
-import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -19,14 +18,14 @@ NEXT_DATA_RE = re.compile(
 )
 
 
-def last_commit_iso(path: Path) -> str | None:
-    result = subprocess.run(
-        ["git", "-C", str(ROOT), "log", "-1", "--format=%cI", "--", str(path)],
-        capture_output=True,
-        text=True,
-    )
-    output = result.stdout.strip()
-    return output or None
+def fetched_at(html_path: Path) -> str | None:
+    meta_path = html_path.with_suffix("").with_suffix(".meta.json")
+    if not meta_path.exists():
+        return None
+    try:
+        return json.loads(meta_path.read_text()).get("fetchedAt")
+    except json.JSONDecodeError:
+        return None
 
 
 def parse_store_html(path: Path) -> dict | None:
@@ -63,7 +62,7 @@ def parse_store_html(path: Path) -> dict | None:
         "email": location.get("email"),
         "services": location.get("locationServices"),
         "openingHours": location.get("openingHours"),
-        "scrapedAt": last_commit_iso(path),
+        "scrapedAt": fetched_at(path),
     }
 
 
